@@ -7,7 +7,6 @@ import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import 'package:video_player/video_player.dart';
 import 'package:chewie/chewie.dart';
 import 'package:just_audio/just_audio.dart';
-import 'package:http/http.dart' as http;
 
 void main() => runApp(const YouTubeMediaApp());
 
@@ -36,17 +35,40 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
   final _yt = YoutubeExplode();
   final _audioPlayer = AudioPlayer();
   final _urlController = TextEditingController(
-    text: 'https://www.youtube.com/watch?v=l8ToeCYczFs',
+    text: 'https://www.youtube.com/watch?v=UjxhrD_Rm5M&ab_channel=MILLY',
   );
 
   VideoPlayerController? _videoController;
   ChewieController? _chewieController;
+
   bool _isLoading = false;
   String? _errorMessage;
   StreamManifest? _currentManifest;
 
+  // Đồng bộ trạng thái play/pause
+  late StreamSubscription<PlayerState> _audioStateSub;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Khi audio thay đổi trạng thái, đồng bộ với video
+    _audioStateSub = _audioPlayer.playerStateStream.listen((state) {
+      final playing = state.playing;
+      if (_videoController == null || !_videoController!.value.isInitialized) {
+        return;
+      }
+      if (playing && !_videoController!.value.isPlaying) {
+        _videoController!.play();
+      } else if (!playing && _videoController!.value.isPlaying) {
+        _videoController!.pause();
+      }
+    });
+  }
+
   @override
   void dispose() {
+    _audioStateSub.cancel();
     _yt.close();
     _audioPlayer.dispose();
     _videoController?.dispose();
@@ -57,36 +79,63 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
   Future<(Uri?, Uri?)> _getBestStreams(VideoId videoId) async {
     try {
       _currentManifest = await _yt.videos.streamsClient.getManifest(videoId);
+
+      final manifest = _currentManifest;
+      if (manifest == null) {
+        log('Manifest is null', name: 'YouTubeStream');
+        return (null, null);
+      }
+
       _logStreamInfo();
 
-      // Ưu tiên MP4 streams
-      final videoStream = _currentManifest!.videoOnly
+      final videoStreams = manifest.videoOnly
           .where((s) => s.container.name == 'mp4')
-          .withHighestBitrate();
-
-      final audioStream = _currentManifest!.audioOnly
+          .toList();
+      final audioStreams = manifest.audioOnly
           .where((s) => s.container.name == 'mp4')
-          .withHighestBitrate();
+          .toList();
 
-      return (videoStream.url, audioStream.url);
+      if (videoStreams.isEmpty || audioStreams.isEmpty) {
+        log('Video or audio streams empty', name: 'YouTubeStream');
+        return (null, null);
+      }
+
+      final bestVideo = videoStreams.reduce((a, b) {
+        final aSize = a.size.totalBytes ?? 0;
+        final bSize = b.size.totalBytes ?? 0;
+        return aSize > bSize ? a : b;
+      });
+
+      final bestAudio = audioStreams.reduce((a, b) {
+        final aSize = a.size.totalBytes ?? 0;
+        final bSize = b.size.totalBytes ?? 0;
+        return aSize > bSize ? a : b;
+      });
+
+      return (bestVideo.url, bestAudio.url);
     } catch (e) {
       log('Stream error: $e', name: 'YouTubeStream');
-      rethrow;
+      return (null, null);
     }
   }
 
   void _logStreamInfo() {
+    if (_currentManifest == null) return;
+
     log('''
-    Available Streams:
-    Video Only: ${_currentManifest!.videoOnly.length}
-    Audio Only: ${_currentManifest!.audioOnly.length}
-    Muxed: ${_currentManifest!.muxed.length}
-    ''', name: 'YouTubeStream');
+Available Streams:
+Video Only: ${_currentManifest!.videoOnly.length}
+Audio Only: ${_currentManifest!.audioOnly.length}
+Muxed: ${_currentManifest!.muxed.length}
+''', name: 'YouTubeStream');
   }
 
   Future<void> _initVideoPlayer(Uri videoUrl) async {
     try {
-      _videoController?.dispose();
+      if (_videoController != null) {
+        await _videoController!.dispose();
+        _videoController = null;
+      }
       _videoController = VideoPlayerController.network(
         videoUrl.toString(),
         httpHeaders: _getHttpHeaders(),
@@ -95,7 +144,6 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
       await _videoController!.initialize();
       if (!mounted) return;
 
-      _chewieController?.dispose();
       _chewieController = ChewieController(
         videoPlayerController: _videoController!,
         autoPlay: false,
@@ -105,16 +153,16 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
           child: Text('Video Error: ${error.toString()}'),
         ),
       );
-    } on PlatformException catch (e) {
-      log('Video init error: ${e.message}', name: 'Player');
-      throw Exception('Video initialization failed: ${e.message}');
+    } catch (e) {
+      log('Video init error: $e', name: 'Player');
+      rethrow;
     }
   }
 
   Future<void> _initAudioPlayer(Uri audioUrl) async {
     try {
       await _audioPlayer.setAudioSource(
-        AudioSource.uri(  // Thay đổi từ ProgressiveAudioSource sang AudioSource.uri
+        AudioSource.uri(
           audioUrl,
           headers: _getHttpHeaders(),
         ),
@@ -145,17 +193,24 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
       final videoId = VideoId(_urlController.text.trim());
       final (videoUrl, audioUrl) = await _getBestStreams(videoId);
 
+      if (videoUrl == null || audioUrl == null) {
+        setState(() {
+          _errorMessage = 'Không tìm thấy stream video hoặc audio phù hợp.';
+          _isLoading = false;
+        });
+        return;
+      }
+
       await Future.wait([
-        _initVideoPlayer(videoUrl!),
-        _initAudioPlayer(audioUrl!),
+        _initVideoPlayer(videoUrl),
+        _initAudioPlayer(audioUrl),
       ]);
 
       if (!mounted) return;
+
       setState(() {});
-    } on VideoUnplayableException catch (e) {
-      setState(() => _errorMessage = 'Video cannot be played: ${e.message}');
     } catch (e) {
-      setState(() => _errorMessage = 'Error: ${e.toString()}');
+      setState(() => _errorMessage = 'Lỗi: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -163,6 +218,7 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isPlaying = _audioPlayer.playing;
     return Scaffold(
       appBar: AppBar(
         title: const Text('YouTube Media Player'),
@@ -200,38 +256,45 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
                   child: Chewie(controller: _chewieController!),
                 ),
               ),
-            _buildAudioControls(),
+            const SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(isPlaying ? Icons.pause : Icons.play_arrow),
+                  onPressed: () {
+                    if (isPlaying) {
+                      _audioPlayer.pause();
+                      _videoController?.pause();
+                    } else {
+                      _audioPlayer.play();
+                      _videoController?.play();
+                    }
+                    setState(() {});
+                  },
+                ),
+                IconButton(
+                  icon: Icon(Icons.stop),
+                  onPressed: () {
+                    _audioPlayer.stop();
+                    _videoController?.pause();
+                    _videoController?.seekTo(Duration.zero);
+                    setState(() {});
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.volume_up),
+                  onPressed: () => _audioPlayer.setVolume(1.0),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.volume_off),
+                  onPressed: () => _audioPlayer.setVolume(0.0),
+                ),
+              ],
+            )
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildAudioControls() {
-    return StreamBuilder<PlayerState>(
-      stream: _audioPlayer.playerStateStream,
-      builder: (context, snapshot) {
-        final state = snapshot.data;
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            IconButton(
-              icon: const Icon(Icons.volume_up),
-              onPressed: () => _audioPlayer.setVolume(1.0),
-            ),
-            IconButton(
-              icon: Icon(state?.playing == true ? Icons.pause : Icons.play_arrow),
-              onPressed: () => state?.playing == true
-                  ? _audioPlayer.pause()
-                  : _audioPlayer.play(),
-            ),
-            IconButton(
-              icon: const Icon(Icons.volume_off),
-              onPressed: () => _audioPlayer.setVolume(0.0),
-            ),
-          ],
-        );
-      },
     );
   }
 
@@ -257,8 +320,8 @@ class _MediaPlayerScreenState extends State<MediaPlayerScreen> {
                 Text('Views: ${video.engagement.viewCount}'),
                 const SizedBox(height: 16),
                 const Text('Available Streams:', style: TextStyle(fontWeight: FontWeight.bold)),
-                Text('Video: ${_currentManifest!.videoOnly.length}'),
-                Text('Audio: ${_currentManifest!.audioOnly.length}'),
+                Text('Video Only: ${_currentManifest!.videoOnly.length}'),
+                Text('Audio Only: ${_currentManifest!.audioOnly.length}'),
                 Text('Muxed: ${_currentManifest!.muxed.length}'),
               ],
             ),

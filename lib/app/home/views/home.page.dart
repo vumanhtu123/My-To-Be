@@ -23,7 +23,19 @@ class HomePage extends GetView<HomeController> {
           }),
           onPressed: () => Get.find<ThemeController>().toggleTheme(),
         ),
-
+          Expanded(
+            child: ListView.builder(
+              itemCount: 50,
+              itemBuilder: (context, index) {
+                return ListTile(
+                  leading: CircleAvatar(child: Text('${index + 1}')),
+                  title: Text('Item ${index + 1}'),
+                  subtitle: Text('Subtitle for item ${index + 1}'),
+                  onTap: () => debugPrint('Tapped on Item ${index + 1}'),
+                );
+              },
+            ),
+          ),
       ],)
     );
   }

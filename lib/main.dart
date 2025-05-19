@@ -348,11 +348,23 @@ class MainScreen extends StatelessWidget {
     final navCtrl = Get.find<MainController>();
 
     return Scaffold(
-      backgroundColor: Colors.blueGrey,
-      body: Obx(() => _pages[navCtrl.currentIndex.value]),
-      bottomNavigationBar: const Padding(
-        padding: EdgeInsets.only(bottom: 16),
-        child: FloatingBottomBar(),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+      body: Stack(
+        children: [
+          Obx(() => IndexedStack(
+            index: navCtrl.currentIndex.value,
+            children: _pages,
+          )),
+
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 16,
+            child: Center(
+              child: FloatingBottomBar(),
+            ),
+          ),
+        ],
       ),
     );
   }

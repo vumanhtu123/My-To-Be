@@ -1,10 +1,35 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
-class Splash extends StatelessWidget {
-  const Splash({super.key});
+import '../../../routes/app.routes.dart';
+
+class SplashPage extends StatefulWidget {
+  const SplashPage({super.key});
+
+  @override
+  State<SplashPage> createState() => _SplashPageState();
+}
+
+class _SplashPageState extends State<SplashPage> {
+  onGoToMain() {
+    Future.delayed(const Duration(seconds: 3), () {
+      Get.offAllNamed(Routes.main);
+    });
+  }
+
+  @override
+  void initState() {
+    onGoToMain();
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container();
+    return const Scaffold(
+      backgroundColor: Colors.white,
+      body: Center(
+        child: CircularProgressIndicator(color: Colors.black),
+      ),
+    );
   }
 }

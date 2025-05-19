@@ -2,11 +2,11 @@ import 'dart:ui';
 
 import 'package:get/get.dart';
 
-class BottomBarController extends GetxController {
-  var selectedIndex = 0.obs;
+class MainController extends GetxController {
+  final currentIndex = 0.obs;
 
-  void changeIndex(int index) {
-    selectedIndex.value = index;
+  void changeTab(int index) {
+    currentIndex.value = index;
   }
 
   void switchLocale() {

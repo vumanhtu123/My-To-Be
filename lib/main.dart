@@ -290,11 +290,20 @@
 // }
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:my_to_be/app/favorite/views/favorite.page.dart';
+import 'package:my_to_be/app/home/views/home.page.dart';
+import 'package:my_to_be/app/setting/views/setting.page.dart';
+import 'package:my_to_be/app/trending/views/trending.page.dart';
+import 'package:my_to_be/helper/colors.dart';
+import 'package:my_to_be/routes/app.pages.dart';
 
+import 'components/floating.bottom.bar.dart';
+import 'helper/theme.controller.dart';
 import 'l10n/app.translations.dart';
 import 'main.controller.dart';
 
 void main() {
+  Get.put(ThemeController());
   runApp(const MyApp());
 }
 
@@ -303,12 +312,22 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeController = Get.find<ThemeController>();
+
     return GetMaterialApp(
+      theme: AppColors().lightTheme,
+      darkTheme: AppColors().darkTheme,
+      themeMode: themeController.themeMode,
       title: 'myBeat',
       translations: AppTranslations(),
       locale: Get.deviceLocale,
       fallbackLocale: const Locale('en', 'US'),
       home: const MainScreen(),
+      initialBinding: BindingsBuilder(() {
+        Get.put(MainController());
+      }),
+      initialRoute: AppPages.initial,
+      getPages: AppPages.routes,
       debugShowCheckedModeBanner: false,
     );
   }
@@ -317,61 +336,23 @@ class MyApp extends StatelessWidget {
 class MainScreen extends StatelessWidget {
   const MainScreen({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    final BottomBarController controller = Get.put(BottomBarController());
-
-    final pages = [
-      Center(child: Text('home'.tr, style: const TextStyle(fontSize: 24))),
-      Center(child: Text('search'.tr, style: const TextStyle(fontSize: 24))),
-      const ProfilePage(),
-    ];
-
-    return Obx(() => Scaffold(
-      appBar: AppBar(
-        title: Text(
-          ['home'.tr, 'search'.tr, 'profile'.tr][controller.selectedIndex.value],
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.language),
-            tooltip: 'change_language'.tr,
-            onPressed: controller.switchLocale,
-          )
-        ],
-      ),
-      body: pages[controller.selectedIndex.value],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: controller.selectedIndex.value,
-        onTap: controller.changeIndex,
-        items: [
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.home),
-            label: 'home'.tr,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.search),
-            label: 'search'.tr,
-          ),
-          BottomNavigationBarItem(
-            icon: const Icon(Icons.person),
-            label: 'profile'.tr,
-          ),
-        ],
-      ),
-    ));
-  }
-}
-
-class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  final List<Widget> _pages = const [
+    HomePage(),
+    TrendingPage(),
+    FavoritePage(),
+    SettingPage(),
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Text(
-        'profile'.tr,
-        style: const TextStyle(fontSize: 24),
+    final navCtrl = Get.find<MainController>();
+
+    return Scaffold(
+      backgroundColor: Colors.blueGrey,
+      body: Obx(() => _pages[navCtrl.currentIndex.value]),
+      bottomNavigationBar: const Padding(
+        padding: EdgeInsets.only(bottom: 16),
+        child: FloatingBottomBar(),
       ),
     );
   }

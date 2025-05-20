@@ -1,3 +1,4 @@
+import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 
 import '../../../base/repository/repositories.dart';
@@ -13,40 +14,88 @@ class HomeBinding extends Bindings {
 
 class HomeController extends GetxController {
   Repositories repositories = Repositories();
-  RxList<VideoItem> videos = <VideoItem>[].obs;
-  RxBool loading = false.obs;
+  final ScrollController scrollController = ScrollController();
+  final videos = <VideoItem>[].obs;
+  final loading = false.obs;
+  int currentPage = 0;
+  bool hasMore = true;
 
   @override
   void onInit() {
-    initData();
     super.onInit();
+    fetchNextPage();
+    scrollController.addListener(_scrollListener);
   }
 
-  void initData() async {
+  void _scrollListener() {
+    if (scrollController.position.pixels >=
+        scrollController.position.maxScrollExtent - 200) {
+      if (!loading.value && hasMore) {
+        fetchNextPage();
+      }
+    }
+  }
+
+  Future<void> fetchNextPage() async {
+    if (loading.value || !hasMore) return;
+
     loading.value = true;
-    Future.delayed(const Duration(seconds: 4), () async {
-      await repositories
-          .fetchSearchVideos(
-              query: 'video trend',
-              type: 'video',
-              sort: 'relevance',
-              region: 'VN',
-              page: 0)
-          .then((value) => {
-                if (value is List)
-                  {
-                    videos.value =
-                        value.map((e) => VideoItem.fromJson(e)).toList()
-                  }
-                else
-                  {print("check data $value")},
-                loading.value = false,
-              });
-    });
+
+    const int minValidItems = 10;
+    const int maxAttempts = 5;
+    int attempt = 0;
+    final List<VideoItem> tempList = [];
+
+    while (tempList.length < minValidItems && attempt < maxAttempts) {
+      final result = await repositories.fetchSearchVideos(
+        query: 'video trend',
+        type: 'video',
+        sort: 'relevance',
+        region: 'VN',
+        page: currentPage,
+      );
+
+      attempt++;
+
+      if (result is List && result.isNotEmpty) {
+        final parsed = result.map((e) => VideoItem.fromJson(e)).toList();
+
+        // Lọc bỏ shorts, live, video quá ngắn
+        final valid = parsed.where((v) =>
+        v.type == 'video' &&
+            v.lengthSeconds >= 60 &&
+            !v.liveNow &&
+            v.lengthSeconds < 3600);
+
+        if (valid.isEmpty) {
+          currentPage++; // vẫn tăng để tránh lặp
+          continue;
+        }
+
+        tempList.addAll(valid);
+        currentPage++; // chỉ tăng khi có dữ liệu
+      } else {
+        hasMore = false;
+        break;
+      }
+    }
+
+    if (tempList.isNotEmpty) {
+      videos.addAll(tempList);
+    } else {
+      hasMore = false;
+    }
+
+    loading.value = false;
   }
 
-  void nextPlayVideo(String id) {
-    Get.toNamed(Routes.playVideo, arguments: {'videoId': id});
-    print("id: $id");
+  void nextPlayVideo(String videoId) {
+    Get.toNamed(Routes.playVideo, arguments: {'videoId': videoId});
+  }
+
+  @override
+  void onClose() {
+    scrollController.dispose();
+    super.onClose();
   }
 }

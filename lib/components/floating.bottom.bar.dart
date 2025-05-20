@@ -13,13 +13,13 @@ class FloatingBottomBar extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? Colors.black87 : Colors.white,
+        color: Colors.transparent,
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 12,
-            offset: const Offset(0, 6),
+            color: isDark ? Colors.white.withOpacity(0.3) : Colors.black.withOpacity(0.3),
+            blurRadius: 0,
+            offset: const Offset(0, 0),
           ),
         ],
       ),

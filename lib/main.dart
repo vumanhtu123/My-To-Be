@@ -361,7 +361,7 @@ class MainScreen extends StatelessWidget {
           const Positioned(
             left: 0,
             right: 0,
-            bottom: 70,
+            bottom: 50,
             child: Center(
               child: FloatingBottomBar(),
             ),

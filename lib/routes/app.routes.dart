@@ -6,4 +6,5 @@ abstract class Routes {
   static const trending = '/trending';
   static const favorite = '/favorite';
   static const setting = '/setting';
+  static const playVideo = '/playVideo';
 }

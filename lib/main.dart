@@ -189,7 +189,7 @@
 //         child: Column(
 //           children: [
 //             TextField(
-//               controller: _urlController,
+//               controllers: _urlController,
 //               decoration: InputDecoration(
 //                 labelText: 'YouTube URL',
 //                 border: const OutlineInputBorder(),
@@ -208,7 +208,7 @@
 //               Expanded(
 //                 child: AspectRatio(
 //                   aspectRatio: 16 / 9,
-//                   child: Chewie(controller: _chewieController!),
+//                   child: Chewie(controllers: _chewieController!),
 //                 ),
 //               ),
 //             const SizedBox(height: 10),
@@ -294,11 +294,12 @@ import 'package:my_to_be/app/favorite/views/favorite.page.dart';
 import 'package:my_to_be/app/home/views/home.page.dart';
 import 'package:my_to_be/app/setting/views/setting.page.dart';
 import 'package:my_to_be/app/trending/views/trending.page.dart';
-import 'package:my_to_be/helper/colors.dart';
 import 'package:my_to_be/routes/app.pages.dart';
+import 'package:my_to_be/utils/colors.dart';
+import 'package:my_to_be/utils/theme.controller.dart';
 
+import 'app/home/controllers/home.controller.dart';
 import 'components/floating.bottom.bar.dart';
-import 'helper/theme.controller.dart';
 import 'l10n/app.translations.dart';
 import 'main.controller.dart';
 
@@ -318,13 +319,14 @@ class MyApp extends StatelessWidget {
       theme: AppColors().lightTheme,
       darkTheme: AppColors().darkTheme,
       themeMode: themeController.themeMode,
-      title: 'myBeat',
+      title: 'My To Be',
       translations: AppTranslations(),
       locale: Get.deviceLocale,
       fallbackLocale: const Locale('en', 'US'),
       home: const MainScreen(),
       initialBinding: BindingsBuilder(() {
         Get.put(MainController());
+        Get.put(HomeController());
       }),
       initialRoute: AppPages.initial,
       getPages: AppPages.routes,
@@ -359,7 +361,7 @@ class MainScreen extends StatelessWidget {
           const Positioned(
             left: 0,
             right: 0,
-            bottom: 16,
+            bottom: 70,
             child: Center(
               child: FloatingBottomBar(),
             ),

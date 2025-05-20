@@ -1,6 +1,8 @@
 import 'package:get/get_navigation/src/routes/get_route.dart';
 import 'package:my_to_be/app/favorite/controllers/favorite.controller.dart';
 import 'package:my_to_be/app/home/views/home.page.dart';
+import 'package:my_to_be/app/playvideo/controllers/video.play.controller.dart';
+import 'package:my_to_be/app/playvideo/views/video.play.page.dart';
 import 'package:my_to_be/app/setting/controllers/setting.controller.dart';
 import 'package:my_to_be/app/setting/views/setting.page.dart';
 import 'package:my_to_be/app/trending/views/trending.page.dart';
@@ -47,6 +49,11 @@ class AppPages {
       name: Routes.setting,
       page: () => const SettingPage(),
       binding: SettingBinding(),
+    ),
+    GetPage(
+      name: Routes.playVideo,
+      page: () => const VideoPlayerPage(),
+      binding: VideoPlayBinding(),
     ),
   ];
 }

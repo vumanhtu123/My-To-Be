@@ -27,7 +27,7 @@ class FloatingBottomBar extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           BottomBarItem(icon: Icons.home, label: 'Home', index: 0),
-          BottomBarItem(icon: Icons.search, label: 'Search', index: 1),
+          BottomBarItem(icon: Icons.trending_up, label: 'Search', index: 1),
           BottomBarItem(icon: Icons.favorite, label: 'Likes', index: 2),
           BottomBarItem(icon: Icons.person, label: 'Profile', index: 3),
         ],
@@ -65,9 +65,9 @@ class BottomBarItem extends StatelessWidget {
       return GestureDetector(
         onTap: () => navCtrl.changeTab(index),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 500),
-          curve: Curves.easeInOut,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.slowMiddle,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           decoration: BoxDecoration(
             color: backgroundColor,
             borderRadius: BorderRadius.circular(30),

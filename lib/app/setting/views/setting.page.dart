@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../utils/theme.controller.dart';
 import '../controllers/setting.controller.dart';
 
 class SettingPage extends GetView<SettingController> {
@@ -8,8 +9,20 @@ class SettingPage extends GetView<SettingController> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(child: Text("Setting")),
+    return Scaffold(
+      body: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Center(child: Text("Setting")),
+          IconButton(
+            icon: Obx(() {
+              final isDark = Get.find<ThemeController>().isDarkMode.value;
+              return Icon(isDark ? Icons.light_mode : Icons.dark_mode);
+            }),
+            onPressed: () => Get.find<ThemeController>().toggleTheme(),
+          ),
+        ],
+      ),
     );
   }
 }

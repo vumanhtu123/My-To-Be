@@ -48,7 +48,7 @@ class HomeController extends GetxController {
 
     while (tempList.length < minValidItems && attempt < maxAttempts) {
       final result = await repositories.fetchSearchVideos(
-        query: 'video trend',
+        query: 'abc',
         type: 'video',
         sort: 'relevance',
         region: 'VN',
@@ -63,7 +63,7 @@ class HomeController extends GetxController {
         // Lọc bỏ shorts, live, video quá ngắn
         final valid = parsed.where((v) =>
         v.type == 'video' &&
-            v.lengthSeconds >= 60 &&
+            v.lengthSeconds >= 100 &&
             !v.liveNow &&
             v.lengthSeconds < 3600);
 

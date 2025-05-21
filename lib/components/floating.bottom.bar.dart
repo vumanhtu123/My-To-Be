@@ -51,16 +51,13 @@ class BottomBarItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final navCtrl = Get.find<MainController>();
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Obx(() {
       final isSelected = navCtrl.currentIndex.value == index;
       final backgroundColor = isSelected
-          ? (isDark ? Colors.white : Colors.black)
-          : Colors.transparent;
+        ? Colors.black : Colors.transparent;
       final iconColor = isSelected
-          ? (isDark ? Colors.black : Colors.white)
-          : (isDark ? Colors.white70 : Colors.black87);
+         ? Colors.white : Colors.white;
 
       return GestureDetector(
         onTap: () => navCtrl.changeTab(index),

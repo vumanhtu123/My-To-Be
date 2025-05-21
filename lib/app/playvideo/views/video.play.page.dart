@@ -1,39 +1,71 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:chewie/chewie.dart';
+import 'package:my_to_be/app/playvideo/controllers/video.play.controller.dart';
 import 'package:video_player/video_player.dart';
-import '../controllers/video.play.controller.dart';
+
+import '../components/video.play.component.dart';
+
 
 class VideoPlayerPage extends GetView<VideoController> {
   const VideoPlayerPage({super.key});
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-
+        title: const Text("Play", maxLines: 1),
+        backgroundColor: Colors.black87,
       ),
       body: Obx(() {
         if (controller.isLoading.value) {
-          return const Center(child: CircularProgressIndicator());
+          // Hiển thị thumbnail + loading spinner
+          return Stack(
+            alignment: Alignment.center,
+            children: [
+              Image.network(
+                controller.thumbnailUrl.value,
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: 250,
+                errorBuilder: (context, error, stackTrace) => Container(
+                  color: Colors.grey,
+                  width: double.infinity,
+                  height: 250,
+                  child: const Icon(Icons.error, color: Colors.white),
+                ),
+              ),
+              const CircularProgressIndicator(),
+            ],
+          );
         }
 
-        if (controller.errorMessage.isNotEmpty) {
-          return Center(child: Text(controller.errorMessage.value, style: const TextStyle(color: Colors.white)));
+        if (controller.isError.value) {
+          return ErrorView(
+            message: controller.errorMessage.value,
+            onRetry: controller.loadMedia, // Hoặc gọi lại hàm load media phù hợp
+          );
+        }
+        if (!controller.isVideoReady.value) {
+          // Nếu video chưa init, chỉ hiển thị thumbnail
+          return Image.network(
+            controller.thumbnailUrl.value,
+            fit: BoxFit.cover,
+            width: double.infinity,
+            height: 250,
+          );
         }
 
+        // Video player chính thức
         return Column(
           children: [
-            // Video player
             AspectRatio(
               aspectRatio: controller.videoController!.value.aspectRatio,
               child: Stack(
                 alignment: Alignment.bottomCenter,
                 children: [
                   VideoPlayer(controller.videoController!),
-                  _VideoOverlay(controller: controller),
+                  VideoOverlay(controller: controller),
                   VideoProgressIndicator(
                     controller.videoController!,
                     allowScrubbing: true,
@@ -43,17 +75,21 @@ class VideoPlayerPage extends GetView<VideoController> {
               ),
             ),
 
-            // Title
+            // Thông tin video
             Padding(
               padding: const EdgeInsets.all(12),
               child: Text(
                 controller.title.value,
-                style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
                 maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
 
-            // Channel info
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12),
               child: Row(
@@ -72,7 +108,10 @@ class VideoPlayerPage extends GetView<VideoController> {
                   ),
                   TextButton(
                     onPressed: () {},
-                    child: const Text('SUBSCRIBE', style: TextStyle(color: Colors.redAccent)),
+                    child: const Text(
+                      'SUBSCRIBE',
+                      style: TextStyle(color: Colors.redAccent),
+                    ),
                   )
                 ],
               ),
@@ -80,22 +119,25 @@ class VideoPlayerPage extends GetView<VideoController> {
 
             const Divider(color: Colors.white24),
 
-            // Controls
+            // Controls: Play/Pause + Toggle mode
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Row(
                 children: [
-                  // IconButton(
-                  //   icon: Icon(
-                  //     controller.isVideoMode.value
-                  //         ? (controller.videoController!.value.isPlaying ? Icons.pause : Icons.play_arrow)
-                  //         : (controller.audioPlayer.playing ? Icons.pause : Icons.play_arrow),
-                  //     color: Colors.white,
-                  //   ),
-                  //   onPressed: controller.playPause,
-                  // ),
                   IconButton(
-                    icon: Icon(Icons.swap_vert, color: Colors.white),
+                    icon: Obx(() {
+                      final isPlaying = controller.isVideoMode.value
+                          ? (controller.videoController?.value.isPlaying ?? false)
+                          : controller.audioPlayer.playing;
+                      return Icon(
+                        isPlaying ? Icons.pause : Icons.play_arrow,
+                        color: Colors.white,
+                      );
+                    }),
+                    onPressed: controller.togglePlayPause,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.swap_vert, color: Colors.white),
                     onPressed: controller.toggleMode,
                     tooltip: 'Chuyển chế độ Video / Audio',
                   ),
@@ -105,7 +147,7 @@ class VideoPlayerPage extends GetView<VideoController> {
 
             const Divider(color: Colors.white24),
 
-            // Suggested videos (dummy layout)
+            // Placeholder danh sách video liên quan
             Expanded(
               child: ListView.builder(
                 itemCount: 8,
@@ -115,43 +157,28 @@ class VideoPlayerPage extends GetView<VideoController> {
                       width: 100,
                       height: 56,
                       color: Colors.grey[700],
-                      child: const Center(child: Icon(Icons.play_arrow, color: Colors.white)),
+                      child: const Center(
+                        child: Icon(Icons.play_arrow, color: Colors.white),
+                      ),
                     ),
-                    title: Text("Video liên quan #$index", style: TextStyle(color: Colors.white)),
-                    subtitle: Text("Channel name • 1M views • 2 weeks ago", style: TextStyle(color: Colors.grey[400])),
+                    title: Text(
+                      "Video liên quan #$index",
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                    subtitle: Text(
+                      "Channel name • 1M views • 2 weeks ago",
+                      style: TextStyle(color: Colors.grey[400]),
+                    ),
                     onTap: () {
-                      // Điều hướng đến video khác nếu có tích hợp
+                      // Xử lý chuyển video nếu cần
                     },
                   );
                 },
               ),
-            )
+            ),
           ],
         );
       }),
-    );
-  }
-}
-
-class _VideoOverlay extends StatelessWidget {
-  final VideoController controller;
-
-  const _VideoOverlay({required this.controller});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      // onTap: controller.playPause,
-      child: AnimatedOpacity(
-        opacity: controller.videoController!.value.isPlaying ? 0 : 1,
-        duration: const Duration(milliseconds: 300),
-        child: Container(
-          color: Colors.black45,
-          child: const Center(
-            child: Icon(Icons.play_arrow, size: 60, color: Colors.white),
-          ),
-        ),
-      ),
     );
   }
 }
